@@ -1,0 +1,88 @@
+import numpy as np
+import cv2
+import pytesseract
+from PIL import Image
+import pyttsx
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+import time
+
+
+def detectarObjeto(img, archivo_xml):
+try:
+# Verifica si hay coincidencia entre la imagen del parametro con el archivo xml.
+#img = cv2.imread(imagen)
+haar = cv2.CascadeClassifier(archivo_xml)
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+cv2.equalizeHist(gray)
+objetos = haar.detectMultiScale(gray, 1.5, 5)
+
+for (x, y, w, h) in objetos:
+imagen2 = cv2.rectangle(img,(x, y), (x+w, y+h), (255, 255, 255),2)
+recortarObjeto(x, y, w, h, img)
+return imagen2
+except:
+return img
+
+def recortarObjeto(x, y, w, h, imagen):
+objetoEncontrado = imagen[y:y+h, x:x+w]
+#objeto_encontrado = imagen[y:y+120, x:x+150]
+#archivo = imagen(imagen[y:y+h, x:x+w])
+archivo1 = objetoEncontrado[.15*h:.55*h,.60*w:.90*w]
+archivo1 = invierte(archivo1)
+cv2.imwrite("numero.jpg",archivo1)
+objetoEncontrado = inverte(objetoEncontrado)
+#cv2.threshold(cv2.cvtColor(inverte(archivo), cv2.COLOR_BGR2GRAY),100,100,THRESH_BINARY))
+cv2.imwrite("algo.jpg", objetoEncontrado)
+time.sleep(0.5)
+fo = open("test.txt", "wb")
+fo.write('Ruta '+pytesseract.image_to_string(Image.open('numero.jpg')))
+#fo.write("Ruta 629")
+fo.close()
+fo = open("test.txt", "r")
+engine = pyttsx.init()
+voices = engine.getProperty('voices')
+for voice in voices:
+engine.setProperty('voice','spanish-latin-am')
+engine.say(fo.read())
+break
+engine.runAndWait()
+
+
+def rotateImage(image, angle):
+image_center = tuple(np.array(image.shape)/2)
+rot_mat = cv2.getRotationMatrix2D(image_center,angle,1.0)
+result = cv2.warpAffine(image, rot_mat, image.shape,flags=cv2.INTER_LINEAR)
+return result
+
+def inverte(imagem):
+return abs(255 - imagem)
+
+def ruta(imagen):
+roi= imagem[y:y+h, x:x+w]
+w, h = imagen.shape[:2] 
+return imagen[29:(29+w), 187:(187+h)]
+
+# Main
+
+# Iniciar la camara
+
+camera = PiCamera()
+camera.resolution = (640, 480)
+camera.framerate = 5
+rawCapture = PiRGBArray(camera, size=(640, 480))
+time.sleep(0.1)
+
+# Captura frames de la camara
+for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+image = detectarObjeto(frame.array, 'cascade3.xml')
+cv2.imshow("Frame", image)
+key = cv2.waitKey(1) & 0XFF
+
+rawCapture.truncate(0)
+
+if key == ord("q"):
+break
+
+
+
