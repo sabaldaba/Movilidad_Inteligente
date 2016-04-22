@@ -1,0 +1,75 @@
+import numpy as np
+import cv2
+import pytesseract
+from PIL import Image
+import pyttsx
+
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+import time
+
+
+def detectarObjeto(img, archivo_xml):
+try:
+# Verifica si hay coincidencia entre la imagen del parametro con el archivo xml.
+#img = cv2.imread(imagen)
+haar = cv2.CascadeClassifier(archivo_xml)
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+cv2.equalizeHist(gray)
+objetos = haar.detectMultiScale(gray, 1.3, 5)
+
+for (x, y, w, h) in objetos:
+imagen2 = cv2.rectangle(img,(x, y), (x+w, y+h), (0, 255, 0),2)
+recortarObjeto(x, y, w, h, img)
+return imagen2
+except:
+return img
+
+def recortarObjeto(x, y, w, h, imagen):
+#objetoEncontrado = imagen[y:y+h, x:x+w]
+#objeto_encontrado = imagen[y:y+120, x:x+150]
+archivo = (imagen[y:y+h, x:x+w])
+archivo1 = archivo[.15*h:.55*h,.60*w:.90*w]
+
+
+
+x,th3 = cv2.threshold(archivo1,127,255,cv2.THRESH_BINARY_INV)
+#th3 = cv2.resize(th3, (300, 200))
+#th3 = cv2.GaussianBlur(th3,(5,5),1)
+cv2.imwrite("algo2.jpg", archivo)
+cv2.imwrite("algo3.jpg", imagen)
+cv2.imwrite("numero.jpg",th3)
+fo = open("test.txt", "wb")
+fo.write('Ruta '+pytesseract.image_to_string(Image.open('numero.jpg')))
+
+fo.close()
+fo = open("test.txt", "r")
+engine = pyttsx.init()
+voices = engine.getProperty('voices')
+for voice in voices:
+engine.setProperty('voice','spanish-latin-am')
+engine.say(fo.read())
+#engine.say("ruta 629")
+break
+engine.runAndWait()
+
+
+def rotateImage(image, angle):
+image_center = tuple(np.array(image.shape)/2)
+rot_mat = cv2.getRotationMatrix2D(image_center,angle,1.0)
+result = cv2.warpAffine(image, rot_mat, image.shape,flags=cv2.INTER_LINEAR)
+return result
+
+def inverte(imagem):
+return abs(255 - imagem)
+
+def ruta(imagen):
+roi= imagem[y:y+h, x:x+w]
+w, h = imagen.shape[:2] 
+return imagen[29:(29+w), 187:(187+h)]
+
+# Main
+
+# Iniciar la camara
+
+resultado = detectarObjeto(cv2.imread('img5.jpg'),'cascade2.xml')
